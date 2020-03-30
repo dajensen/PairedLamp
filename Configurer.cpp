@@ -10,80 +10,6 @@ const char* password = "88888888";  // eight eights.
 AsyncWebServer *pServer;
 
 
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    html {
-     font-family: Arial;
-     display: inline-block;
-     margin: 0px auto;
-     text-align: center;
-    }
-    h2 { font-size: 3.0rem; }
-    p { font-size: 3.0rem; }
-    .units { font-size: 1.2rem; }
-    .dht-labels{
-      font-size: 1.5rem;
-      vertical-align:middle;
-      padding-bottom: 15px;
-    }
-  </style>
-</head>
-<body>
-  <h2>ESP8266 DHT Server</h2>
-  <p>
-    <span class="dht-labels">Temperature</span> 
-    <span id="temperature">%TEMPERATURE%</span>
-    <sup class="units">&deg;C</sup>
-  </p>
-  <p>
-    <span class="dht-labels">Humidity</span>
-    <span id="humidity">%HUMIDITY%</span>
-    <sup class="units">%</sup>
-  </p>
-</body>
-<script>
-setInterval(function ( ) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("temperature").innerHTML = this.responseText;
-    }
-  };
-  xhttp.open("GET", "/temperature", true);
-  xhttp.send();
-}, 10000 ) ;
-
-setInterval(function ( ) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("humidity").innerHTML = this.responseText;
-    }
-  };
-  xhttp.open("GET", "/humidity", true);
-  xhttp.send();
-}, 10000 ) ;
-</script>
-</html>)rawliteral";
-
-
-// Replaces placeholder with DHT values
-String processor(const String& var){
-  //Serial.println(var);
-  if(var == "TEMPERATURE"){
-    return String("This would be the TEMPERATURE");
-  }
-  else if(var == "HUMIDITY"){
-    return String("This would be the HUMIDITY");
-  }
-  return String();
-}
-
-
-
 //*******************************************************************
 // Class: Configurer
 //*******************************************************************
@@ -137,14 +63,31 @@ void Configurer::setup() {
   pServer->on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     Serial.println("Get the root");
     request->send(SPIFFS, "/index.htm");
-    // request->send_P(200, "text/html", index_html, processor);
-//    request->send_P(200, "text/html", "This should be index.htm");
   });
   pServer->on("/hello", HTTP_GET, [](AsyncWebServerRequest *request){
     Serial.println("Get hello");
     request->send_P(200, "text/html", "Hello there, Dave!");
   });
-
+  pServer->on("/config", HTTP_POST, 
+    [](AsyncWebServerRequest *request){
+      Serial.println("POST config");
+      request->send_P(200, "text/html", "Ok");
+    },
+    [](AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final){
+      Serial.println("It was an upload????");
+    },
+    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+        if(!index){
+          Serial.printf("BodyStart: %u B\n", total);
+        }
+        for(size_t i=0; i<len; i++){
+          Serial.write(data[i]);
+        }
+        if(index + len == total){
+          Serial.printf("BodyEnd: %u B\n", total);
+        }    
+    }
+    );
 
     pServer->begin();
 }
