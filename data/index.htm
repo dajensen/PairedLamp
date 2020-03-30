@@ -1,0 +1,28 @@
+<!DOCTYPE HTML><html>
+<head>
+<script>
+function sendConfig() { 
+    var ssid = document.getElementById("ssid").value;
+    var pw = document.getElementById("pw").value;
+    var body = ssid+","+pw;
+    alert(body);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+        alert("Configuration was saved.  Unplug the lamp and plug it back in.");
+    }
+  };
+  xhttp.open("POST", "/config", true);
+  xhttp.send(body);
+}
+
+</script>
+</head>
+<body>
+    <h1>Paired Lamp</h1>
+    <h2>WiFi Connection Information</h2>
+    <div><span style="display:inline-block;min-width:25%;">SSID:</span><span><input type="text" id="ssid"></input></span> </div>
+    <div><span style="display:inline-block;min-width:25%;">Password:</span><span><input type="text" id="pw"></input></span> </div>
+    <div><span style="display:inline-block;min-width:25%;">&nbsp</span><span><input type="button" id="pw" onclick="sendConfig()" value="Apply"></input></span> </div>
+</body>
