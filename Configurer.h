@@ -2,6 +2,7 @@
 class Configurer {
 
   String filename;
+  boolean SaveSettings(char *settings);
   
 public:
 	Configurer();

@@ -13,10 +13,9 @@ AsyncWebServer *pServer;
 //*******************************************************************
 // Class: Configurer
 //*******************************************************************
-Configurer::Configurer() : filename("/test.cfg") {
+Configurer::Configurer() : filename("/wifi.cfg") {
 }
 
-/*
 boolean Configurer::GetConfig(String &ssid, String &password) {
     boolean rv = false;
     if(SPIFFS.begin()) {
@@ -47,7 +46,6 @@ boolean Configurer::GetConfig(String &ssid, String &password) {
     }
     return rv;
 }
-*/
 
 void Configurer::setup() {
   pServer = new AsyncWebServer(80);
@@ -69,23 +67,30 @@ void Configurer::setup() {
     request->send_P(200, "text/html", "Hello there, Dave!");
   });
   pServer->on("/config", HTTP_POST, 
-    [](AsyncWebServerRequest *request){
-      Serial.println("POST config");
-      request->send_P(200, "text/html", "Ok");
+    [this](AsyncWebServerRequest *request){
+      Serial.println("POST to /config");
+      Serial.println("Data: " + String((char *)request->_tempObject));
+      if(SaveSettings((char *)request->_tempObject))
+        request->send_P(200, "text/html", "Ok");
+      else
+        request->send_P(500, "text/html", "Unable to save settings");      
     },
     [](AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final){
-      Serial.println("It was an upload????");
+      // This should never happen.  It would be a big surprise.
+      Serial.println("************ It was an upload????");
     },
     [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
         if(!index){
-          Serial.printf("BodyStart: %u B\n", total);
+          Serial.printf("BodyStart: %u\n", total);
+          request->_tempObject = new uint8_t[total + 1];
+          ((char *)(request->_tempObject))[total] = 0;
         }
-        for(size_t i=0; i<len; i++){
-          Serial.write(data[i]);
-        }
+        
+        memcpy(&((char *)request->_tempObject)[index], data, len);
+        
         if(index + len == total){
-          Serial.printf("BodyEnd: %u B\n", total);
-        }    
+          Serial.printf("BodyEnd: %u\n", total);
+        }
     }
     );
 
@@ -96,47 +101,16 @@ void Configurer::loop() {
 
 }
 
-
-// Some sample SPIFFS code that WORKS, for comparison
-boolean Configurer::GetConfig(String &ssid, String &password) {
-  Serial.println("");
-  
-    if(!SPIFFS.begin()){
-      Serial.println("An Error has occurred while mounting SPIFFS");
-      return false;
+boolean Configurer::SaveSettings(char *settings){
+  boolean rv = false;
+  File f = SPIFFS.open(filename, "w");
+  if(f) {
+      f.write(settings, strlen(settings));
+      f.close();
+      rv = true;
   }
-  
-  File file = SPIFFS.open("/index.htm", "r");
-  if(!file){
-    Serial.println("Failed to open file for reading");
-    return false;
+  else {
+      Serial.println("Open file for writing failed");
   }
-  
-  Serial.println();
-  Serial.println("File Content:");
-  while(file.available()){
-    Serial.write(file.read());
-  }
-  file.close();
-  return false;
+  return rv;
 }
-
-/*
-// And some initial file writing
-        if(!SPIFFS.exists(filename.c_str())) {
-            Serial.println(filename + " does not exist, writing it");
-            char *sampledata = "monstrosity,91Manassas!";
-            File f = SPIFFS.open(filename, "w");
-            if(f) {
-                f.write(sampledata, strlen(sampledata));
-                f.close();
-            }
-            else {
-                Serial.println("Open file for writing failed");
-            }          
-        }
-        else {
-            Serial.println("IT EXISTS:");
-        }
-
- */
